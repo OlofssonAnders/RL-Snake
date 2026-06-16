@@ -1,5 +1,5 @@
 use crate::game::{Action, Observation};
-use crate::controllers::Controller;
+use crate::controllers::control::Controller;
 use macroquad::prelude::*;
 
 

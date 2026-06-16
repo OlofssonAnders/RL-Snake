@@ -1,6 +1,5 @@
 use macroquad::prelude::*;
-
-use crate::game::Game;
+use crate::game::game_logic::Game;
 
 pub fn draw_game(game: &Game) {
 

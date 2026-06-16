@@ -1,7 +1,7 @@
 use crate::game::{Action, Observation};
 use crate::controllers::control::{Controller};
 use crate::agents::agent::{Agent};
-use crate::snake_env::SnakeEnv;
+use crate::game::snake_env::SnakeEnv;
 use rand::prelude::*;
 
 pub struct RandomAgent {

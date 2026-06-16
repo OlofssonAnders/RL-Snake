@@ -1,8 +1,8 @@
 use crate::agents::agent::Agent;
-use crate::controllers::Controller;
+use crate::controllers::control::Controller;
 use crate::game::game_logic::Point;
 use crate::game::{Action, Observation};
-use crate::snake_env::SnakeEnv;
+use crate::game::snake_env::SnakeEnv;
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

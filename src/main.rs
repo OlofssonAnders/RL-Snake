@@ -1,20 +1,9 @@
-use crate::agents::agent::Agent;
-use crate::agents::heuristic_agent::HeuristicAgent;
-use crate::agents::q_learning::QLearningAgent;
-use crate::agents::random_agent::RandomAgent;
-use crate::controllers::{Controller, HumanController};
-use crate::render::draw_game;
-use crate::snake_env::SnakeEnv;
+use std::{env, error::Error, process};
+use snake_game::game::{snake_env::SnakeEnv};
+use snake_game::agents::{agent::Agent,random_agent::RandomAgent,heuristic_agent::HeuristicAgent,q_learning::QLearningAgent};
+use snake_game::controllers::{control::Controller, human_control::HumanController};
+use snake_game::render;
 use macroquad::prelude::*;
-use std::env;
-use std::error::Error;
-use std::process;
-
-mod agents;
-mod controllers;
-mod game;
-mod render;
-mod snake_env;
 
 const FILE_PATH: &str = "/home/anders/Documents/MachineLearning/RL/Rust/snake/q_learning";
 
@@ -42,7 +31,7 @@ async fn run_visible(mut controller: Box<dyn Controller>) {
             step_time = 0.1;
         }
 
-        draw_game(&snake_env.game);
+        render::draw_game(&snake_env.game);
         next_frame().await;
     }
 }

@@ -1,7 +1,7 @@
 use crate::game::{Action, Observation};
-use crate::controllers::Controller;
+use crate::controllers::control::Controller;
 use crate::agents::agent::Agent;
-use crate::snake_env::SnakeEnv;
+use crate::game::snake_env::SnakeEnv;
 
 pub struct HeuristicAgent {
     // Placeholder for agent's internal state, e.g., Q-table, neural network, etc.

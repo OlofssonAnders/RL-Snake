@@ -1,4 +1,4 @@
-use crate::{controllers::control::Controller, snake_env::SnakeEnv};
+use crate::{controllers::control::Controller, game::snake_env::SnakeEnv};
 
 pub trait Agent: Controller {
     fn run_training(&mut self, env: SnakeEnv);
