@@ -1,5 +1,5 @@
 use crate::agents::agent::Agent;
-use crate::controllers::control::Controller;
+use crate::agents::control::Controller;
 use crate::game::game_logic::Point;
 use crate::game::{Action, Observation};
 use crate::game::snake_env::SnakeEnv;

@@ -1,4 +1,4 @@
-use crate::{controllers::control::Controller, game::snake_env::SnakeEnv};
+use crate::{agents::control::Controller, game::snake_env::SnakeEnv};
 
 pub trait Agent: Controller {
     fn run_training(&mut self, env: SnakeEnv);
@@ -6,22 +6,23 @@ pub trait Agent: Controller {
     fn save(&self, path: &str) -> Result<(), Box<dyn std::error::Error>>;
 
     fn evaluate(&mut self, mut env: SnakeEnv) -> i32 {
-        let mut avg_score = 0;
-        for episode in 0..30000 {
+        let mut total_score = 0;
+        let total_episodes = 5000;
+        for episode in 0..total_episodes {
             let mut obs = env.reset();
             loop {
                 let action = self.choose_action(&obs);
                 let (next_obs, _, done) = env.step(action);
                 obs = next_obs;
                 if done {
-                    avg_score = (avg_score*episode + env.game.get_score()) / (episode + 1);
+                    total_score += env.game.get_score();
                     break;
                 }
             }
             if episode % 1000 == 0 {
-                println!("Episode: {episode}")
+                println!("Episode: {episode}");
             }
         }
-        return avg_score;
+        return total_score/total_episodes;
     }
 }

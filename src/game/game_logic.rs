@@ -108,7 +108,8 @@ impl Game {
             if self.snake.head == self.fruit {
                 self.fruit = self.random_fruit(self.squares);
                 self.score += 100;
-                self.speed *= 1.0 //0.9;
+                self.speed *= 0.9;
+                //self.speed *= 1.0;
             } else {
                 self.snake.body.pop_back();
             }

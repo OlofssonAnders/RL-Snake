@@ -1,14 +1,16 @@
-use std::{env, error::Error, process};
-use snake_game::game::{snake_env::SnakeEnv};
-use snake_game::agents::{agent::Agent,random_agent::RandomAgent,heuristic_agent::HeuristicAgent,q_learning::QLearningAgent};
-use snake_game::controllers::{control::Controller, human_control::HumanController};
-use snake_game::render;
 use macroquad::prelude::*;
+use snake_game::agents::{
+    agent::Agent, heuristic_agent::HeuristicAgent, q_learning::QLearningAgent,
+    random_agent::RandomAgent,
+};
+use snake_game::agents::{control::Controller, human_control::HumanController};
+use snake_game::game::snake_env::SnakeEnv;
+use snake_game::render;
+use std::{env, error::Error, process};
 
-const FILE_PATH: &str = "/home/anders/Documents/MachineLearning/RL/Rust/snake/q_learning";
+const SAVE_PATH: &'static str = "/home/anders/Documents/MachineLearning/RL/Rust/snake/";
 
-async fn run_visible(mut controller: Box<dyn Controller>) {
-    let mut snake_env = SnakeEnv::new();
+async fn run_visible(mut snake_env: SnakeEnv, mut controller: Box<dyn Controller>) {
     let mut accumulator = 0.0;
     let mut step_time = 0.1; // seconds per snake move
 
@@ -50,46 +52,38 @@ async fn main() {
 }
 
 async fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    let spec = config.controller;
-    let mode = config.mode;
+    
+    let snake_env = SnakeEnv::new();
 
-    match (mode, spec.load_visible) {
-        (RunMode::Visible, None) => {
-            let controller = (spec.create_visible)();
-            run_visible(controller).await;
-            return Ok(());
+    match config {
+        Config::Human(controller) => {
+            run_visible(snake_env, Box::new(controller)).await;
         }
-        (RunMode::Visible, Some(load)) => {
-            let loaded_agent = load(FILE_PATH)?;
-            run_visible(loaded_agent).await;
-            return Ok(());
+        Config::Visible(spec) => {
+            let mut agent = (spec.create)();
+            let path = String::from(SAVE_PATH) + spec.name;
+            if let Some(load) = spec.load {
+                agent = load(&path)?;
+            } 
+            run_visible(snake_env, agent).await;
         }
-        (RunMode::Training, _) => {
-            let create_agent =
-                (spec.create_training).ok_or("Agent does not support training")?;
-            let mut agent = create_agent();
-            let env = SnakeEnv::new();
-            agent.run_training(env);
-            agent.save(FILE_PATH)?;
-            return Ok(());
+        Config::Training(spec) => {
+            let mut agent = (spec.create)();
+            let path = String::from(SAVE_PATH) + spec.name;
+            agent.run_training(snake_env);
+            agent.save(&path)?;
         }
-        (RunMode::Evaluation, Some(load)) => {
-            let mut loaded_agent = load(FILE_PATH)?;
-            let env = SnakeEnv::new();
-            let score = loaded_agent.evaluate(env);
+        Config::Evaluation(spec) => {
+            let mut agent = (spec.create)();
+            let path = String::from(SAVE_PATH) + spec.name;
+            if let Some(load) = spec.load {
+                agent = load(&path)?;
+            }
+            let score = agent.evaluate(snake_env);
             println!("Score: {score}");
-            return Ok(());
-        }
-        (RunMode::Evaluation, _) => {
-            let env = SnakeEnv::new();
-            let create_agent =
-                (spec.create_training).ok_or("Agent does not support evaluation")?;
-            let mut agent = create_agent();
-            let score = agent.evaluate(env);
-            println!("Score: {score}");
-            return Ok(());
         }
     }
+    return Ok(());
 }
 
 fn find_agent(name: &str) -> Result<&'static AgentSpec, &'static str> {
@@ -99,9 +93,11 @@ fn find_agent(name: &str) -> Result<&'static AgentSpec, &'static str> {
         .ok_or("Unknown agent \n")
 }
 
-struct Config {
-    controller: &'static AgentSpec,
-    mode: RunMode,
+enum Config {
+    Human(HumanController),
+    Visible(&'static AgentSpec),
+    Training(&'static AgentSpec),
+    Evaluation(&'static AgentSpec),
 }
 
 impl Config {
@@ -109,24 +105,15 @@ impl Config {
         if args.len() < 2 {
             return Err("not enough arguments \n");
         }
-        let controller = find_agent(&args[1])?;
-        let mode = RunMode::from_str(&args[2])?;
-        Ok(Config { controller, mode })
+        return Config::from_str(&args[1], &args[2]);
     }
-}
 
-enum RunMode {
-    Visible,
-    Training,
-    Evaluation,
-}
-
-impl RunMode {
-    fn from_str(s: &str) -> Result<Self, &'static str> {
+    fn from_str(s: &str, g: &str) -> Result<Self, &'static str> {
         match s {
-            "visible" => Ok(RunMode::Visible),
-            "training" => Ok(RunMode::Training),
-            "evaluation" => Ok(RunMode::Evaluation),
+            "human" => Ok(Config::Human(HumanController::new())),
+            "visible" => Ok(Config::Visible(find_agent(g)?)),
+            "training" => Ok(Config::Training(find_agent(g)?)),
+            "evaluation" => Ok(Config::Evaluation(find_agent(g)?)),
             _ => Err("Invalid Mode \n"),
         }
     }
@@ -134,35 +121,25 @@ impl RunMode {
 
 struct AgentSpec {
     name: &'static str,
-    create_visible: fn() -> Box<dyn Controller>,
-    create_training: Option<fn() -> Box<dyn Agent>>,
-    load_visible: Option<fn(&str) -> Result<Box<dyn Agent>, Box<dyn std::error::Error>>>,
+    create: fn() -> Box<dyn Agent>,
+    load: Option<fn(&str) -> Result<Box<dyn Agent>, Box<dyn std::error::Error>>>,
 }
 
 static AGENTS: &[AgentSpec] = &[
     AgentSpec {
         name: "random",
-        create_visible: || Box::new(RandomAgent::new()),
-        create_training: Some(|| Box::new(RandomAgent::new())),
-        load_visible: None,
+        create: || Box::new(RandomAgent::new()),
+        load: None,
     },
     AgentSpec {
         name: "heuristic",
-        create_visible: || Box::new(HeuristicAgent::new()),
-        create_training: Some(|| Box::new(HeuristicAgent::new())),
-        load_visible: None,
-    },
-    AgentSpec {
-        name: "human",
-        create_visible: || Box::new(HumanController::new()),
-        create_training: None,
-        load_visible: None,
+        create: || Box::new(HeuristicAgent::new()),
+        load: None,
     },
     AgentSpec {
         name: "q_learning",
-        create_visible: || Box::new(QLearningAgent::new()),
-        create_training: Some(|| Box::new(QLearningAgent::new())),
-        load_visible: Some(|path| {
+        create: || Box::new(QLearningAgent::new()),
+        load: Some(|path: &str| {
             let mut agent = QLearningAgent::load(path)?;
             agent.epsilon = 0.0;
             Ok(Box::new(agent))
